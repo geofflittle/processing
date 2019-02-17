@@ -12,6 +12,7 @@
   "author": "Geoff Little",
   "license": "MIT",
   "devDependencies": {
+    "@types/lodash": "4.14.121",
     "@types/node": "11.9.4",
     "@types/p5": "0.7.2",
     "awesome-typescript-loader": "5.2.1",
@@ -29,5 +30,7 @@
     "webpack-dev-server": "3.1.14",
     "webpack-split-chunks": "0.2.1"
   },
-  "dependencies": {}
+  "dependencies": {
+    "lodash": "4.17.11"
+  }
 }
