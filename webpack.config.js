@@ -40,16 +40,5 @@ module.exports = {
   },
   externals: {
     p5: "p5"
-  },
-  optimization: {
-    splitChunks: {
-      cacheGroups: {
-        commons: {
-          name: "commons",
-          chunks: "initial",
-          minChunks: 2
-        }
-      }
-    }
   }
 };
