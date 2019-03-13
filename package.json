@@ -12,6 +12,7 @@
   "author": "Geoff Little",
   "license": "MIT",
   "devDependencies": {
+    "@types/dat.gui": "0.7.2",
     "@types/lodash": "4.14.121",
     "@types/node": "11.9.4",
     "@types/p5": "0.7.2",
@@ -31,6 +32,7 @@
     "webpack-split-chunks": "0.2.1"
   },
   "dependencies": {
+    "dat.gui": "0.7.5",
     "lodash": "4.17.11"
   }
 }

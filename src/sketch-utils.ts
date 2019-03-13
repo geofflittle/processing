@@ -29,6 +29,22 @@ export function getWorldHeight(sketch: P5): number {
   return sketch.windowHeight + PADDING_Y;
 }
 
+export function getNWCorner(sketch: P5): [number, number] {
+  return [-PADDING_X / 2, -PADDING_Y / 2];
+}
+
+export function getNECorner(sketch: P5): [number, number] {
+  return [getWorldWidth(sketch) - PADDING_X / 2, -PADDING_Y / 2];
+}
+
+export function getSECorner(sketch: P5): [number, number] {
+  return [getWorldWidth(sketch) - PADDING_X / 2, getWorldHeight(sketch) - PADDING_Y / 2];
+}
+
+export function getSWCorner(sketch: P5): [number, number] {
+  return [-PADDING_X / 2, getWorldHeight(sketch) - PADDING_Y / 2];
+}
+
 export function createSlider(sketch: P5, parentId: string, labelHtml: string, min: number, max: number, value?: number,
                              step?: number): ISlider {
   const div: P5.Element = sketch.createDiv();
