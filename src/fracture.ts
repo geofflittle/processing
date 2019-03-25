@@ -2,9 +2,11 @@ import * as P5 from "p5";
 import { ISketchContext } from "./index";
 import { getSketchHeight, getSketchWidth } from "./sketch-utils";
 import * as dat from "dat.gui";
-import { mod } from "./math-utils";
+import { map, mod } from "./math-utils";
+import MIDIMessageEvent = WebMidi.MIDIMessageEvent;
+import MIDIInput = WebMidi.MIDIInput;
 
-type TwoDPoint = [ number, number ];
+type TwoDPoint = [number, number];
 
 interface IFractureConfig {
     fractureParamProviders: IFractureParamProviders;
@@ -45,20 +47,27 @@ export function setup(sketchContext: ISketchContext): void {
 
     sketchContext.buffer = buffer;
     sketchContext.config = fractureConfig;
+
+    navigator.requestMIDIAccess().then((value: WebMidi.MIDIAccess) => {
+        const inputEntries: IterableIterator<[string, MIDIInput]> = value.inputs.entries();
+        for (let pair of inputEntries) {
+            pair[1].onmidimessage = onMIDIMessage;
+        }
+    });
 }
 
 function getCentroid(shape: ITwoDShape): TwoDPoint {
     return shape.points.reduce((accum: TwoDPoint, point: TwoDPoint, i: number) => {
-        const newPoint: TwoDPoint = [ accum[0] + point[0], accum[1] + point[1] ];
+        const newPoint: TwoDPoint = [accum[0] + point[0], accum[1] + point[1]];
         if (i === shape.points.length - 1) {
-            return [ newPoint[0] / shape.points.length, newPoint[1] / shape.points.length ];
+            return [newPoint[0] / shape.points.length, newPoint[1] / shape.points.length];
         }
         return newPoint;
-    }, [ 0, 0 ]);
+    }, [0, 0]);
 }
 
-function getMidPoint([ x_0, y_0 ]: TwoDPoint, [ x_1, y_1 ]: TwoDPoint, p: number): TwoDPoint {
-    return [ p * x_0 + (1 - p) * x_1, p * y_0 + (1 - p) * y_1 ];
+function getMidPoint([x_0, y_0]: TwoDPoint, [x_1, y_1]: TwoDPoint, p: number): TwoDPoint {
+    return [p * x_0 + (1 - p) * x_1, p * y_0 + (1 - p) * y_1];
 }
 
 function getSubShapes(shape: ITwoDShape, p: number, q: number): ITwoDShape[] {
@@ -72,13 +81,13 @@ function getSubShapes(shape: ITwoDShape, p: number, q: number): ITwoDShape[] {
         const firstMidPoint: TwoDPoint = getMidPoint(prevPoint, currPoint, p);
         const secondMidPoint: TwoDPoint = getMidPoint(currPoint, nextPoint, q);
         subShapes.push({
-            points: [ firstMidPoint, currPoint, secondMidPoint, shapeCentroid ]
+            points: [firstMidPoint, currPoint, secondMidPoint, shapeCentroid]
         });
     }
     return subShapes;
 }
 
-export function draw(sketchContext: ISketchContext): void {
+export async function draw(sketchContext: ISketchContext): Promise<void> {
     if (!sketchContext.buffer) {
         return;
     }
@@ -89,20 +98,18 @@ export function draw(sketchContext: ISketchContext): void {
 
     const rads: number = 2 * Math.PI / fractureParamProviders.nPoints();
     const shape0: ITwoDShape = {
-        points: [ ...Array(fractureParamProviders.nPoints()).keys() ]
-            .map((i: number): TwoDPoint => [ Math.cos(rads * i + fractureParamProviders.rotation()), Math.sin(rads * i + fractureParamProviders.rotation()) ])
-            .map(([ x, y ]: TwoDPoint): TwoDPoint => [ x * fractureParamProviders.radius() + sketchContext.getWorldWidth() / 2,
-                y * fractureParamProviders.radius() + sketchContext.getWorldHeight() / 2 ])
+        points: [...Array(fractureParamProviders.nPoints()).keys()]
+            .map((i: number): TwoDPoint => [Math.cos(rads * i + fractureParamProviders.rotation()), Math.sin(rads * i + fractureParamProviders.rotation())])
+            .map(([x, y]: TwoDPoint): TwoDPoint => [x * fractureParamProviders.radius() + sketchContext.getWorldWidth() / 2,
+                y * fractureParamProviders.radius() + sketchContext.getWorldHeight() / 2])
     };
 
-    // const subShapes: ITwoDShape[] = getSubShapes(shape0, fractureParamProviders.mWeight0(), fractureParamProviders.mWeight1());
-
-    const subShapes: ITwoDShape[] = [ ...Array(fractureParamProviders.fractures()).keys() ].reduce((accum: ITwoDShape[], i: number): ITwoDShape[] => {
+    const subShapes: ITwoDShape[] = [...Array(fractureParamProviders.fractures()).keys()].reduce((accum: ITwoDShape[], i: number): ITwoDShape[] => {
         const toFlatten: ITwoDShape[][] = accum.map((shape: ITwoDShape): ITwoDShape[] => getSubShapes(shape, fractureParamProviders.mWeight0(), fractureParamProviders.mWeight1()));
         let flattened: ITwoDShape[] = [];
         toFlatten.forEach((shapes: ITwoDShape[]) => flattened = flattened.concat(shapes));
         return flattened;
-    }, [ shape0 ]);
+    }, [shape0]);
 
     buffer.strokeWeight(1);
     buffer.stroke(0);
@@ -113,7 +120,7 @@ export function draw(sketchContext: ISketchContext): void {
         const hue: number = mod(buffer.map(hueNoise, 0, 1, h - 60, h + 60), 360);
         buffer.fill(hue, s, v);
         buffer.beginShape();
-        shape.points.forEach(([ x, y ]: TwoDPoint) => {
+        shape.points.forEach(([x, y]: TwoDPoint) => {
             buffer.vertex(x, y);
         });
         buffer.endShape(buffer.CLOSE);
@@ -125,6 +132,15 @@ export function draw(sketchContext: ISketchContext): void {
 export function windowResized(sketch: P5): void {
     sketch.resizeCanvas(getSketchWidth(sketch), getSketchHeight(sketch));
 }
+
+let numPointsController: dat.GUIController;
+let rotationController: dat.GUIController;
+let radiusController: dat.GUIController;
+let mWeight0Controller: dat.GUIController;
+let mWeight1Controller: dat.GUIController;
+let fracturesController: dat.GUIController;
+let hueSpeedController: dat.GUIController;
+let colorController: dat.GUIController;
 
 function getFractureConfig(sketch: P5): IFractureConfig {
     const gui = new dat.GUI({ name: "processing-gui" });
@@ -139,14 +155,14 @@ function getFractureConfig(sketch: P5): IFractureConfig {
         hue_distance: 1,
         color: { h: 0, s: 1, v: 1 }
     };
-    const numPointsController: dat.GUIController = gui.add(initialConfig, "n_points", 3, 30, 1);
-    const rotationController: dat.GUIController = gui.add(initialConfig, "rotation", 0, 2 * Math.PI);
-    const radiusController: dat.GUIController = gui.add(initialConfig, "radius", 1, 2500);
-    const mWeight0Controller: dat.GUIController = gui.add(initialConfig, "m_0_weight", 0, 2);
-    const mWeight1Controller: dat.GUIController = gui.add(initialConfig, "m_1_weight", 0, 2);
-    const fracturesController: dat.GUIController = gui.add(initialConfig, "fractures", 0, 10, 1);
-    const hueSpeedController: dat.GUIController = gui.add(initialConfig, "hue_speed", 0, 0.5);
-    const colorController: dat.GUIController = gui.addColor(initialConfig, "color");
+    numPointsController = gui.add(initialConfig, "n_points", 3, 30, 1);
+    rotationController = gui.add(initialConfig, "rotation", 0, 2 * Math.PI);
+    radiusController = gui.add(initialConfig, "radius", 1, 2500);
+    mWeight0Controller = gui.add(initialConfig, "m_0_weight", 0, 2);
+    mWeight1Controller = gui.add(initialConfig, "m_1_weight", 0, 2);
+    fracturesController = gui.add(initialConfig, "fractures", 0, 10, 1);
+    hueSpeedController = gui.add(initialConfig, "hue_speed", 0, 0.5);
+    colorController = gui.addColor(initialConfig, "color");
     return {
         fractureParamProviders: {
             nPoints: () => numPointsController.getValue(),
@@ -159,4 +175,32 @@ function getFractureConfig(sketch: P5): IFractureConfig {
             color: () => colorController.getValue(),
         }
     };
+}
+
+function onMIDIMessage(midiMessage: MIDIMessageEvent) {
+    const data: Uint8Array = midiMessage.data;
+    if (data[1] === 16) {
+        numPointsController.setValue(map(data[2], 0, 127, 3, 30));
+    }
+    if (data[1] === 20) {
+        rotationController.setValue(map(data[2], 0, 127, 0, 2 * Math.PI));
+    }
+    if (data[1] === 24) {
+        radiusController.setValue(map(data[2], 0, 127, 1, 2500));
+    }
+    if (data[1] === 28) {
+        mWeight0Controller.setValue(map(data[2], 0, 127, 0, 2));
+    }
+    if (data[1] === 46) {
+        mWeight1Controller.setValue(map(data[2], 0, 127, 0, 2));
+    }
+    if (data[1] === 50) {
+        fracturesController.setValue(map(data[2], 0, 127, 0, 10));
+    }
+    if (data[1] === 54) {
+        hueSpeedController.setValue(map(data[2], 0, 127, 0, 0.5));
+    }
+    if (data[1] === 58) {
+        colorController.setValue({ h: map(data[2], 0, 127, 0, 360), s: 1, v: 1 });
+    }
 }

@@ -9,3 +9,5 @@ export const getSigmoid = (max: number, growth: number, midpoint: number): ((x: 
 
 export const mod = (n: number, m: number): number => ((n % m) + m) % m;
 
+export const map = (value: number, domainMin: number, domainMax: number, rangeMin: number, rangeMax: number): number =>
+    (rangeMin + ((rangeMax - rangeMin) / (domainMax - domainMin)) * (value - domainMin));

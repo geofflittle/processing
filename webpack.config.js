@@ -25,7 +25,6 @@ module.exports = {
     extensions: [ ".tsx", ".ts", ".js", ".json" ]
   },
   plugins: [
-    // new WebpackDevServer(),
     new MiniCssExtractPlugin({ filename: "[name].css", chunkFilename: "[id].css" }),
     new HtmlWebpackPlugin({
       title: "Processing",
