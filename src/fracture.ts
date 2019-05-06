@@ -48,12 +48,12 @@ export function setup(sketchContext: ISketchContext): void {
     sketchContext.buffer = buffer;
     sketchContext.config = fractureConfig;
 
-    navigator.requestMIDIAccess().then((value: WebMidi.MIDIAccess) => {
-        const inputEntries: IterableIterator<[string, MIDIInput]> = value.inputs.entries();
-        for (let pair of inputEntries) {
-            pair[1].onmidimessage = onMIDIMessage;
-        }
-    });
+    // navigator.requestMIDIAccess().then((value: WebMidi.MIDIAccess) => {
+    //     const inputEntries: IterableIterator<[string, MIDIInput]> = value.inputs.entries();
+    //     for (let pair of inputEntries) {
+    //         pair[1].onmidimessage = onMIDIMessage;
+    //     }
+    // });
 }
 
 function getCentroid(shape: ITwoDShape): TwoDPoint {

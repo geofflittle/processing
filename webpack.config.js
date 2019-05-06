@@ -5,7 +5,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 module.exports = {
   devtool: "source-map",
   devServer: {
-    contentBase: path.join(__dirname, 'dist'),
+    contentBase: path.join(__dirname, "dist"),
     compress: true,
   },
   entry: {
@@ -38,6 +38,6 @@ module.exports = {
     path: path.resolve(__dirname, "dist")
   },
   externals: {
-    p5: "p5"
+    "p5": "p5"
   }
 };
